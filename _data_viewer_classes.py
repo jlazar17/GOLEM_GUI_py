@@ -23,8 +23,18 @@ def is__I3Index__(parent,child):
     else:
         return False
 
+def isDataSet(h5File,path):
+    if not path in h5File:
+        return True
+    elif isinstance(h5File[path], h5py.Dataset):
+        return True
+    elif isinstance(h5File[path],np.ndarray):
+        return True
+    else:
+        return False
+
 class plotOptionWindow(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parxent=None):
         super(plotOptionWindow, self).__init__(parent)
         self.setWindowTitle('Plot Options')
 
@@ -40,10 +50,11 @@ class TitledTree():
         self.layout.addWidget(self.title)
         self.layout.addWidget(self.tree)
 
-        self.rowList = []
+        self.rowList        = []
         self.expandableList = []
-        self.hasAttrsList = []
-        self.fileItems = []
+        self.hasAttrsList   = []
+        self.fileItems      = []
+        self.isNpArray      = []
 
         self.iconClosedGroup = QtGui.QIcon('images/closed_group.svg')
         self.iconOpenGroup = QtGui.QIcon('images/open_group.svg')
@@ -59,6 +70,7 @@ class TitledTree():
         self.expandableList = []
         self.hasAttrsList   = []
         self.fileItems      = []
+        self.isNpArray      = []
         self.tree.clear()
 
     def swapGroupIcon(self):
@@ -101,8 +113,10 @@ class TitledTree():
                 self.fileItems.append(hdfObject[key].name)
                 if isinstance(hdfObject[key], h5py.Group):
                     a = self.findFileItems(hdfObject[key])
+                    self.isNpArray.append(False)
                 elif isRecarrayLike(hdfObject[key].value):
                     for n in list(hdfObject[key].dtype.names):
+                        self.isNpArray.append(True)
                         self.fileItems.append((n,hdfObject[key].name))
         return self.fileItems
 
@@ -116,32 +130,46 @@ class TitledTree():
                 a          = self.fileItems[i].split("/")
                 parentName = a[-2]
                 childName  = a[-1]
-                if parentName == "":
-                    parent = self.tree
-                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
-                else:
-                    parent = self.treeWidgetItems[np.where(self.names==parentName)][0]
-                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
-#                if is__I3Index__(parentName,childName):
-#                    pass
+                # Uncomment following lines to include "__I3Index__"
+#                if parentName == "":
+#                    parent = self.tree
+#                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
 #                else:
-#                    if parentName == "":
-#                        parent = self.tree
-#                        self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
-#                    else:
-#                        parent = self.treeWidgetItems[np.where(self.names==parentName)][0]
-#                        self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
+#                    parent = self.treeWidgetItems[np.where(self.names==parentName)][0]
+#                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)to
+                # Comment out following lines to include "__I3Index__"
+                if is__I3Index__(parentName,childName):
+                    pass
+                else:
+                    if parentName == "":
+                        parent = self.tree
+                        self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
+                    else:
+                        parent = self.treeWidgetItems[np.where(self.names==parentName)][0]
+                        self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
             else:
-                parentName = self.fileItems[i][1].split("/")[-1] # removes leading "/" from path
+                # Comment out following lines to include "__I3Index__"
+                parentName = self.fileItems[i][1].split("/")[-1]
                 childName  = self.fileItems[i][0]
                 parent     = self.treeWidgetItems[np.where(self.names==parentName)][-1]
                 self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
+                # Uncomment following lines to include "__I3Index__"
+
 #                if is__I3Index__(parentName,childName):
 #                    pass
 #                else:
 #                    parent     = self.treeWidgetItems[np.where(self.names==parentName)][-1]
 #                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
         return self.treeWidgetItems
+
+    def fullItemPath(self, selectedRow):
+        path = selectedRow.text(0)
+        parentRow = selectedRow.parent()
+    
+        while not parentRow == None:
+            path = parentRow.text(0) + '/' + path
+            parentRow = parentRow.parent()
+        return path
 
 
     def addQTreeWidgetItem(self, parent,parentName,childName,hdf5File):
@@ -161,10 +189,26 @@ class TitledTable():
         self.title = QtWidgets.QLabel(title)
         self.table = QtWidgets.QTableWidget()
         self.table.setShowGrid(True)
+        
+        self.previewButton = QtWidgets.QPushButton("Preview Data")
+        self.numPreviewRowsLE = QtWidgets.QLineEdit("1000")
+        
+        self.previewButton.hide()
+        self.numPreviewRowsLE.hide()
+        self.previewButton.setDisabled(True)
+        self.numPreviewRowsLE.setDisabled(True)
 
-        self.layout = QtWidgets.QVBoxLayout()
-        self.layout.addWidget(self.title)
-        self.layout.addWidget(self.table)
+        self.hBox = QtWidgets.QHBoxLayout()
+        self.hBox.addWidget(self.title)
+        self.hBox.addStretch()
+        self.hBox.addWidget(self.numPreviewRowsLE)
+        self.hBox.addWidget(self.previewButton)
+        
+        self.vBox = QtWidgets.QVBoxLayout()
+        self.vBox.addLayout(self.hBox)
+        self.vBox.addWidget(self.table)
+    
+        self.layout = self.vBox
 
 
     def clear(self):
@@ -179,12 +223,11 @@ class TitledTable():
         else:
             print("Type Error: Item must be a str")
 
-
     def numCols(self, values):
         valueShape = np.shape(values)
         numcols = 1
 
-        if len(value_shape) > 1:
+        if len(valueShape) > 1:
             numcols = valueShape[1]
 
         return numcols

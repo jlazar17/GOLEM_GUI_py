@@ -92,8 +92,9 @@ class DataViewerWindow(QtWidgets.QMainWindow):
         
         super(DataViewerWindow, self).__init__()
         
-        self.fname     = ''
-        self.path      = ''
+        self.fname          = ''
+        self.path           = ''
+        self.currentDataset = ''
     
         self.initialiseUI()
 
@@ -102,13 +103,14 @@ class DataViewerWindow(QtWidgets.QMainWindow):
         self.setWindowTitle('Golem GUI')
         
         self.tree = dvc.TitledTree("File tree")
-        #self.tree.tree.itemClicked.connect(self.itemClicked)
+        self.tree.tree.itemClicked.connect(self.itemClicked)
         self.tree.tree.itemExpanded.connect(self.tree.swapGroupIcon)
         self.tree.tree.itemCollapsed.connect(self.tree.swapGroupIcon)
         self.tree.tree.setMinimumWidth(250)
 
         self.datasetTable = dvc.TitledTable("Values")
         self.datasetTable.table.setMinimumWidth(350)
+        self.datasetTable.previewButton.clicked.connect(self.displayDataset)
 
         self.attributeTable = QtWidgets.QTableWidget()
         self.attributeTable.setShowGrid(True)
@@ -137,7 +139,7 @@ class DataViewerWindow(QtWidgets.QMainWindow):
         grid.addWidget(self.plotButton, 1, 1, QtCore.Qt.AlignLeft)
         grid.addWidget(self.fnameLabel, 2, 0)
         grid.addLayout(self.tree.layout, 3, 0)
-        grid.addLayout(self.datasetTable.layout, 3, 1)
+        grid.addLayout(self.datasetTable.vBox, 3, 1)
         grid.addWidget(self.attributeTable, 4, 0, 1, 2)
         
         self.setCentralWidget(QtWidgets.QWidget(self))
@@ -159,16 +161,19 @@ class DataViewerWindow(QtWidgets.QMainWindow):
         self.initiateFileOpen(self.fname)
     
     def initiateFileOpen(self, fname):
-        self.tree.tree.clear()
         self.tree.clear()
         self.datasetTable.clear()
         self.attributeTable.clear()
+        self.datasetTable.numPreviewRowsLE.setDisabled(True)
+        self.datasetTable.previewButton.setDisabled(True)
         try:
             self.openFile(fname)
             self.fileItems       = self.tree.findFileItems(self.hdf5File)
             self.treeWidgetItems = self.tree.populateTree(self.fileItems, self.hdf5File)
             self.fnameLabel.setText(fname.split('/')[-1])
             self.setWindowTitle('PyHDFView - ' + fname)
+            self.datasetTable.previewButton.show()
+            self.datasetTable.numPreviewRowsLE.show()
         except Exception as e:
             print(e)
             self.fname = '' # if it didn't work keep the old value
@@ -177,6 +182,8 @@ class DataViewerWindow(QtWidgets.QMainWindow):
             self.clearFileItems
             self.datasetTable.clear()
             self.attributeTable.clear()
+            self.datasetTable.previewButton.hide()
+            self.datasetTable.numPreviewRowsLE.hide()
             print("Error opening file")
 
     def plot(self):
@@ -193,9 +200,9 @@ class DataViewerWindow(QtWidgets.QMainWindow):
         else:
             shape = np.shape(self.values)
             if len(shape) == 1:
-                max_col = 1
+                maxCol = 1
             else:
-                max_col = shape[1]
+                maxCol = shape[1]
             
             minRow = 0
             maxRow = shape[0]
@@ -222,8 +229,108 @@ class DataViewerWindow(QtWidgets.QMainWindow):
         self.fileItems = []
         self.treeWidgetItems.clear()
 
+    def enablePreviewWidgets(self):
+        selectedRow = self.tree.tree.currentItem()
+        path        = self.tree.fullItemPath(selectedRow)
+        if (not (path) == self.currentDataset) and dvc.isDataSet(self.hdf5File,path):
+            self.datasetTable.previewButton.setDisabled(False)
+            self.datasetTable.numPreviewRowsLE.setDisabled(False)
+        else:
+            self.datasetTable.previewButton.setDisabled(True)
+            self.datasetTable.numPreviewRowsLE.setDisabled(True)
 
+    def displayDataset(self):
+        
+        selectedRow = self.tree.tree.currentItem()
+        path        = self.tree.fullItemPath(selectedRow)
+        print(path)
+            
+        self.currentDataset = path
+        keys = []
+        while not path in self.hdf5File:
+            _ = path.split("/")
+            path = ("/").join(_[:-1])
+            keys.append(_[-1])
+        keys = keys[::-1]
+        self.values = self.hdf5File[path].value
+        for key in keys:
+            self.values = self.values[key]
 
+        
+        if len(self.values) > 0: # If the dataset is not empty
+            self.plotButton.show()
+            self.datasetTable.clear()
+            
+            if len(self.values) <= 1000:
+                numrows = len(self.values)
+            else:
+                numrows = int(self.datasetTable.numPreviewRowsLE.text())
+            numcols = self.datasetTable.numCols(self.values)
+            self.datasetTable.table.setRowCount(numrows)
+            self.datasetTable.table.setColumnCount(numcols)
+            
+            for i in range(numrows):
+                if numcols > 1:
+                    for j in range(numcols):
+                        self.datasetTable.setItem(i, j, str(self.values[i,j]))
+                else:
+                    self.datasetTable.setItem(i, 0, str(self.values[i]))
+#
+#        elif isinstance(self.hdf5File[path], h5py.Group):
+#            self.currentDataset = path
+#            self.datasetTable.clear()
+#            self.values = np.array([])
+#            self.plotButton.hide()
+
+    def isQTreeWidgetItem(self,item):
+        if isinstance(item, QtWidgets.QTreeWidgetItem):
+            return True
+        else:
+            return False
+    
+    def itemClicked(self):
+        self.enablePreviewWidgets()
+#        if self.isQTreeWidgetItem(self.tree.tree.currentItem()):
+#            self.displayDataset()
+
+    def plotGraph(self):
+        
+        selected_items = self.dataset_table.table.selectedItems()
+        
+        if len(selectedItems) > 0:
+            minRow = selectedItems[0].row()
+            maxRow = selectedItems[-1].row() + 1
+            
+            minCol = selectedItems[0].column()
+            maxCol = selectedItems[-1].column() + 1
+        
+        else:
+            shape = np.shape(self.values)
+            if len(shape) == 1:
+                maxCol = 1
+            else:
+                maxCol = shape[1]
+            
+            minRow = 0
+            maxRow = shape[0]
+            minCol = 0
+        
+        plt.ion()
+        plt.close('all')
+        
+        if len(self.values) > 0: # for 2d data each plot col by col
+            if len(np.shape(self.values)) > 1:
+                plt.figure()
+                for i in range(minRow, maxRow):
+                    plt.plot(self.values[i, minCol:maxCol], '-o', label=str(i))
+                
+                plt.legend(loc=0)
+                plt.show()
+            
+            else: # for 1d data we plot a row
+                plt.figure()
+                plt.plot(self.values[minRow:maxRow], '-o')
+                plt.show()
 
 class Controller:
 
