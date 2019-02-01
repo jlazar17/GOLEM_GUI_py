@@ -59,7 +59,7 @@ class TitledTree():
         self.expandableList = []
         self.hasAttrsList   = []
         self.fileItems      = []
-        self.list.clear()
+        self.tree.clear()
 
     def swapGroupIcon(self):
         for i in range(len(self.treeWidgetItems)):
@@ -105,7 +105,6 @@ class TitledTree():
                     for n in list(hdfObject[key].dtype.names):
                         self.fileItems.append((n,hdfObject[key].name))
         return self.fileItems
-    
 
     def populateTree(self, fileItems, hdf5File):
         # Also I apologize for this one
@@ -117,23 +116,31 @@ class TitledTree():
                 a          = self.fileItems[i].split("/")
                 parentName = a[-2]
                 childName  = a[-1]
-                if is__I3Index__(parentName,childName):
-                    pass
-                else:
-                    if parentName == "":
-                        parent = self.tree
-                        self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
-                    else:
-                        parent = self.treeWidgetItems[np.where(self.names==parentName)][0]
-                        self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
-            else:
-                parentName = self.fileItems[i][1][1:] # removes leading "/" from path
-                childName  = self.fileItems[i][0]
-                if is__I3Index__(parentName,childName):
-                    pass
-                else:
-                    parent     = self.treeWidgetItems[np.where(self.names==parentName)][0]
+                if parentName == "":
+                    parent = self.tree
                     self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
+                else:
+                    parent = self.treeWidgetItems[np.where(self.names==parentName)][0]
+                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
+#                if is__I3Index__(parentName,childName):
+#                    pass
+#                else:
+#                    if parentName == "":
+#                        parent = self.tree
+#                        self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
+#                    else:
+#                        parent = self.treeWidgetItems[np.where(self.names==parentName)][0]
+#                        self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
+            else:
+                parentName = self.fileItems[i][1].split("/")[-1] # removes leading "/" from path
+                childName  = self.fileItems[i][0]
+                parent     = self.treeWidgetItems[np.where(self.names==parentName)][-1]
+                self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
+#                if is__I3Index__(parentName,childName):
+#                    pass
+#                else:
+#                    parent     = self.treeWidgetItems[np.where(self.names==parentName)][-1]
+#                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
         return self.treeWidgetItems
 
 

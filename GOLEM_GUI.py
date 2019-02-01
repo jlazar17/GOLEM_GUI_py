@@ -156,15 +156,15 @@ class DataViewerWindow(QtWidgets.QMainWindow):
     def chooseFile(self):
         self.fname = QtWidgets.QFileDialog.getOpenFileName(self,
                                                            'Open file','~', filter='*.hdf5 *.h5')[0]
-        print(self.fname)
         self.initiateFileOpen(self.fname)
     
     def initiateFileOpen(self, fname):
+        self.tree.tree.clear()
+        self.tree.clear()
         self.datasetTable.clear()
         self.attributeTable.clear()
         try:
             self.openFile(fname)
-            print(type(self.hdf5File))
             self.fileItems       = self.tree.findFileItems(self.hdf5File)
             self.treeWidgetItems = self.tree.populateTree(self.fileItems, self.hdf5File)
             self.fnameLabel.setText(fname.split('/')[-1])
@@ -219,7 +219,7 @@ class DataViewerWindow(QtWidgets.QMainWindow):
                 plt.show()
 
     def clearFileItems(self):
-        self.file_items = []
+        self.fileItems = []
         self.treeWidgetItems.clear()
 
 
