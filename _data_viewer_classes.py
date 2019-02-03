@@ -1,37 +1,7 @@
 import numpy as np
 import h5py
 from PyQt5 import QtCore, QtGui, QtWidgets
-
-def hasKeys(item):
-    try:
-        item.keys()
-        return True
-    except:
-        return False
-
-def isRecarrayLike(item):
-    if not (isinstance(item, np.ndarray)):
-        return False
-    elif isinstance(item,np.recarray):
-        return True
-    elif (isinstance(item,np.ndarray) and item.dtype.names != None):
-        return True
-
-def is__I3Index__(parent,child):
-    if ("__I3Index" in parent) or ("__I3Index" in child):
-        return True
-    else:
-        return False
-
-def isDataSet(h5File,path):
-    if not path in h5File:
-        return True
-    elif isinstance(h5File[path], h5py.Dataset):
-        return True
-    elif isinstance(h5File[path],np.ndarray):
-        return True
-    else:
-        return False
+import auxiliary_functions as aux
 
 class plotOptionWindow(QtWidgets.QWidget):
     def __init__(self, parxent=None):
@@ -90,7 +60,7 @@ class TitledTree():
     def setIcon(self, treeWidgetItem, hdf5Object):
         
         hasAttrs      = len(list(hdf5Object.attrs.keys())) > 0
-        isExpandable  = isinstance(hdf5Object, h5py.Group) or isRecarrayLike(hdf5Object)
+        isExpandable  = isinstance(hdf5Object, h5py.Group) or aux.isRecarrayLike(hdf5Object)
         
         self.hasAttrsList.append(hasAttrs)
         self.expandableList.append(isExpandable)
@@ -108,13 +78,13 @@ class TitledTree():
 
     def findFileItems(self, hdfObject):
         # Sorry for this one
-        if hasKeys(hdfObject):
+        if aux.hasKeys(hdfObject):
             for key in hdfObject.keys():
                 self.fileItems.append(hdfObject[key].name)
                 if isinstance(hdfObject[key], h5py.Group):
                     a = self.findFileItems(hdfObject[key])
                     self.isNpArray.append(False)
-                elif isRecarrayLike(hdfObject[key].value):
+                elif aux.isRecarrayLike(hdfObject[key].value):
                     for n in list(hdfObject[key].dtype.names):
                         self.isNpArray.append(True)
                         self.fileItems.append((n,hdfObject[key].name))
@@ -130,15 +100,7 @@ class TitledTree():
                 a          = self.fileItems[i].split("/")
                 parentName = a[-2]
                 childName  = a[-1]
-                # Uncomment following lines to include "__I3Index__"
-#                if parentName == "":
-#                    parent = self.tree
-#                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
-#                else:
-#                    parent = self.treeWidgetItems[np.where(self.names==parentName)][0]
-#                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)to
-                # Comment out following lines to include "__I3Index__"
-                if is__I3Index__(parentName,childName):
+                if aux.is__I3Index__(parentName,childName):
                     pass
                 else:
                     if parentName == "":
@@ -148,18 +110,13 @@ class TitledTree():
                         parent = self.treeWidgetItems[np.where(self.names==parentName)][0]
                         self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
             else:
-                # Comment out following lines to include "__I3Index__"
                 parentName = self.fileItems[i][1].split("/")[-1]
                 childName  = self.fileItems[i][0]
-                parent     = self.treeWidgetItems[np.where(self.names==parentName)][-1]
-                self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
-                # Uncomment following lines to include "__I3Index__"
-
-#                if is__I3Index__(parentName,childName):
-#                    pass
-#                else:
-#                    parent     = self.treeWidgetItems[np.where(self.names==parentName)][-1]
-#                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
+                if aux.is__I3Index__(self.fileItems[i][1],childName):
+                    pass
+                else:
+                    parent     = self.treeWidgetItems[np.where(self.names==parentName)][-1]
+                    self.addQTreeWidgetItem(parent, parentName, childName,hdf5File)
         return self.treeWidgetItems
 
     def fullItemPath(self, selectedRow):
