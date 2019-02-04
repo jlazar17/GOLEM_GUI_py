@@ -55,7 +55,7 @@ class DataViewerWindow(QtWidgets.QMainWindow):
 
         self.plotButton = QtWidgets.QPushButton("Plot")
         self.plotButton.clicked.connect(self.plot)
-        self.plotButton.hide()
+        self.plotButton.setDisabled(True)
 
         self.nextButton = QtWidgets.QPushButton("Next")
         self.nextButton.clicked.connect(self.nextButtonClicked)
@@ -106,8 +106,8 @@ class DataViewerWindow(QtWidgets.QMainWindow):
             
             self.fnameLabel.setText(fname.split('/')[-1])
             self.setWindowTitle('PyHDFView - ' + fname)
-            self.datasetTable.previewButton.show()
-            self.datasetTable.numPreviewRowsLE.show()
+            self.datasetTable.previewButton.setDisabled(False)
+            self.datasetTable.numPreviewRowsLE.setDisabled(False)
         except Exception as e:
             print(e)
             self.fname = '' # if it didn't work keep the old value
@@ -116,8 +116,8 @@ class DataViewerWindow(QtWidgets.QMainWindow):
             self.clearFileItems
             self.datasetTable.clear()
             self.attributeTable.clear()
-            self.datasetTable.previewButton.hide()
-            self.datasetTable.numPreviewRowsLE.hide()
+            self.datasetTable.previewButton.setDisabled(True)
+            self.datasetTable.numPreviewRowsLE.setDisabled(True)
             print("Error opening file")
 
         return self.h5File
@@ -187,13 +187,13 @@ class DataViewerWindow(QtWidgets.QMainWindow):
             path = ("/").join(_[:-1])
             keys.append(_[-1])
         keys = keys[::-1]
-        self.values = self.h5File[path].value
+        self.values = self.h5File[path][()]
         for key in keys:
             self.values = self.values[key]
 
         
         if len(self.values) > 0: # If the dataset is not empty
-            self.plotButton.show()
+            self.plotButton.setDisabled(False)
             self.datasetTable.clear()
             
             if len(self.values) <= 1000:

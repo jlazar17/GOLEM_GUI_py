@@ -150,8 +150,8 @@ class TitledTable():
         self.previewButton = QtWidgets.QPushButton("Preview Data")
         self.numPreviewRowsLE = QtWidgets.QLineEdit("1000")
         
-        self.previewButton.hide()
-        self.numPreviewRowsLE.hide()
+        self.previewButton.setDisabled(True)
+        self.numPreviewRowsLE.setDisabled(True)
         self.previewButton.setDisabled(True)
         self.numPreviewRowsLE.setDisabled(True)
 

@@ -40,7 +40,7 @@ def makeFileStr(pathToDset, H5File):
         pathToDset = ("/").join(_[:-1])
         keys.append(_[-1])
     keys = keys[::-1]
-    fileStr = "['%s'].value" % pathToDset
+    fileStr = "['%s'][()]" % pathToDset
     for key in keys:
         fileStr = "%s['%s']" % (fileStr, key)
     return fileStr
