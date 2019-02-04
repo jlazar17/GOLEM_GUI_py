@@ -7,12 +7,23 @@
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+import h5py
+import auxiliary_functions as aux
+import file_generator_warning as fg_warning
 
 class FileGeneratorWindow(QtWidgets.QMainWindow):
     
-    def __init__(self, pathList):
+    def __init__(self, pathList, h5Path):
         super(FileGeneratorWindow,self).__init__()
+        self.h5Path               = h5Path
+        self.h5File               = h5py.File(h5Path)
+        self.pathList             = pathList
+        self.analysisName         = ""
+        self.variableLineEditList = []
+        self.varNameList          = []
+        self.standardItemModel    = QtGui.QStandardItemModel()
         self.setupUi(pathList)
+
     
     def setupUi(self, pathList):
         self.setObjectName("MainWindow")
@@ -45,7 +56,7 @@ class FileGeneratorWindow(QtWidgets.QMainWindow):
         self.gridLayout = QtWidgets.QGridLayout()
         self.gridLayout.setSpacing(6)
         self.gridLayout.setObjectName("gridLayout")
-        self.tableView = QtWidgets.QTableView(self.layoutWidget)
+        self.tableView = QtWidgets.QTableWidget(self.layoutWidget)
         self.tableView.setObjectName("tableView")
         self.gridLayout.addWidget(self.tableView, 0, 0, 1, 1)
         self.verticalLayout.addLayout(self.gridLayout)
@@ -109,10 +120,9 @@ class FileGeneratorWindow(QtWidgets.QMainWindow):
         
         # Below this point, things have been added in by hand
         
-        self.variableLineEditList = []
-        self.standardItemModel    = QtGui.QStandardItemModel()
-        self.populateTable(pathList)
+        self.populateTable()
         self.centralWidget.setLayout(self.horizontalLayout_5)
+        self.pushButton.clicked.connect(self.finishClicked)
     
     
     def retranslateUi(self):
@@ -126,30 +136,70 @@ class FileGeneratorWindow(QtWidgets.QMainWindow):
         self.checkBoxCpp.setText(_translate("MainWindow", "Generate Cpp"))
         self.pushButton.setText(_translate("MainWindow", "Finish"))
     
-    def makeModel(self, pathList):
+    def setModel(self):
         headers = ["Dataset Path", "Variable Name"]
         self.standardItemModel.setHorizontalHeaderLabels(headers)
-        for path in pathList:
-            self.variableLineEditList.append(QtWidgets.QLineEdit(path.split("/")[-1]))
+        for path in self.pathList:
+            name = path.split("/")[-1]
+            self.variableLineEditList.append(QtWidgets.QLineEdit(name))
+            #self.variableLineEditList.append(QtWidgets.QLineEdit(name))
             self.standardItemModel.appendRow([QtGui.QStandardItem(i) for i in
-                                              [path,"Error"]])
+                                              [path, name]])
     
-    def populateTable(self, pathList):
-        self.makeModel(pathList)
-        self.tableView.setModel(self.standardItemModel)
-        for i in range(len(pathList)):
-            _ = self.variableLineEditList[i]
-            self.tableView.setIndexWidget(self.standardItemModel.index(i,1),_)
-        self.tableView.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+    def populateTable(self):
+        #self.setModel(self.pathList)
+        headers = ["Dataset Path", "Variable Name"]
+        numRows = len(self.pathList)
+        self.tableView.setRowCount(numRows)
+        self.tableView.setColumnCount(2)
+        self.tableView.setHorizontalHeaderLabels(headers)
+        for i in range(len(self.pathList)):
+            name = self.pathList[i].split("/")[-1]
+            self.tableView.setItem(i, 0, QtWidgets.QTableWidgetItem(self.pathList[i]))
+            self.tableView.setItem(i,1, QtWidgets.QTableWidgetItem(name))
+        self.tableView.show()
+        #self.tableView.setModel(self.standardItemModel)
+        #for i in range(len(self.pathList)):
+            #            _ = self.variableLineEditList[i]
+            #self.tableView.setIndexWidget(self.standardItemModel.index(i,1),_)
+#        self.tableView.setShowGrid(False)
 
+
+    def setNameList(self):
+        for i in range(len(self.pathList)):
+            varName = self.tableView.item(i,1).text()
+            self.varNameList.append(varName)
+
+    def writeOutfile(self):
+        strings = (aux.pyString1, self.analysisName, aux.pyString2,
+                self.h5Path,aux.pyString3)
+        outText = "%s%s%s%s%s" % strings
+        for i in range(len(self.pathList)):
+            outText = "%s\t\tself.%s = self.h5File%s\n" % (outText, self.varNameList[i],
+                    aux.makeFileStr(self.pathList[i], self.h5File))
+        with open("./%s.py" % self.analysisName, "w") as f:
+            f.write(outText)
+
+    def setAnalysisName(self):
+        self.analysisName = self.lineEditAnalysisName.text()
+    
+    def finishClicked(self):
+        self.setAnalysisName()
+        self.setNameList()
+        if (not self.checkBoxCpp.isChecked()) and (not
+                self.checkBoxPython.isChecked()):
+            self.fgWarningWindow = fg_warning.Ui_file_generator_warning()
+            self.fgWarningWindow.show()
+        if self.checkBoxPython.isChecked():
+            self.writeOutfile()
 
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_MainWindow()
 #    ui.setupUi(MainWindow)
-    ui.setupUi(MainWindow, ["longer/path/to/dset1","path/to/dset2"])
-    MainWindow.show()
+    testPaths = ["longer/path/to/dset1","path/to/dset2"]
+    FileGenerator = FileGeneratorWindow(testPaths,
+            "/Users/jlazar/Documents/GOLEM_GUI_py/test_files/NuFATECrossSections.h5")
+    FileGenerator.show()
     sys.exit(app.exec_())
 
