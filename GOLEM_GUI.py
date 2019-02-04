@@ -8,6 +8,7 @@ import _data_viewer_classes as dvc
 import file_generator
 import about
 import welcome
+import data_viewer_warning as dv_warning
 import auxiliary_functions as aux
 
 
@@ -25,6 +26,7 @@ class DataViewerWindow(QtWidgets.QMainWindow):
         self.path             = ''
         self.currentDataset   = ''
         self.selectedPathList = []
+        self.treeWidgetItems  = []
     
         self.initialiseUI()
 
@@ -276,10 +278,13 @@ class DataViewerWindow(QtWidgets.QMainWindow):
         self.setSelectedPathList()
         if len(self.selectedPathList)>0:
             self.close()
-            self.FileGeneratorWindow = file_generator.FileGeneratorWindow(self.selectedPathList)
+            self.FileGeneratorWindow =\
+            file_generator.FileGeneratorWindow(self.selectedPathList,
+                    self.fname)
             self.FileGeneratorWindow.show()
-#        else:
-#            make a warning window
+        else:
+            self.dvWarningWindow = dv_warning.Ui_data_viewer_warning()
+            self.dvWarningWindow.show()
 
 
             

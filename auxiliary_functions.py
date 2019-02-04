@@ -31,3 +31,22 @@ def isDataSet(h5File,path):
         return True
     else:
         return False
+
+def makeFileStr(pathToDset, H5File):
+    keys = []
+    while not pathToDset in H5File:
+        print
+        _ = pathToDset.split("/")
+        pathToDset = ("/").join(_[:-1])
+        keys.append(_[-1])
+    keys = keys[::-1]
+    fileStr = "['%s'].value" % pathToDset
+    for key in keys:
+        fileStr = "%s['%s']" % (fileStr, key)
+    return fileStr
+
+pyString1 = "import numpy as np\nimport h5py\n\nclass "
+
+pyString2 = "():\n\n\tdef __init__(self):\n\t\tself.h5File = h5py.File('"
+
+pyString3 = "', 'r')\n"
