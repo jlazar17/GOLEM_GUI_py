@@ -20,7 +20,6 @@ class TitledTree():
         self.layout.addWidget(self.title)
         self.layout.addWidget(self.tree)
 
-        self.rowList        = []
         self.expandableList = []
         self.hasAttrsList   = []
         self.fileItems      = []
@@ -36,7 +35,6 @@ class TitledTree():
 
 
     def clear(self):
-        self.rowList        = []
         self.expandableList = []
         self.hasAttrsList   = []
         self.fileItems      = []

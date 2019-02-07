@@ -8,6 +8,13 @@ def hasKeys(item):
     except:
         return False
 
+def isNumeric(listObject):
+    dtype = np.array(listObject).dtype
+    if np.issubdtype(dtype, np.number):
+        return True
+    else:
+        return False
+
 def isRecarrayLike(item):
     if not (isinstance(item, np.ndarray)):
         return False
@@ -24,7 +31,7 @@ def is__I3Index__(parent,child):
 
 def isDataSet(h5File,path):
     if not path in h5File:
-        return True
+        return False
     elif isinstance(h5File[path], h5py.Dataset):
         return True
     elif isinstance(h5File[path],np.ndarray):
@@ -44,6 +51,18 @@ def makeFileStr(pathToDset, H5File):
     for key in keys:
         fileStr = "%s['%s']" % (fileStr, key)
     return fileStr
+
+def getDataSet(h5File, path):
+    keys = []
+    while not path in h5File:
+        _ = path.split("/")
+        path = ("/").join(_[:-1])
+        keys.append(_[-1])
+    keys = keys[::-1]
+    values = h5File[path][()]
+    for key in keys:
+        self.values = self.values[keys]
+    
 
 pyString1 = "import numpy as np\nimport h5py\n\nclass "
 
